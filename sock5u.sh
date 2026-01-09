@@ -47,18 +47,7 @@ install -m 755 /tmp/sing-box-*/sing-box "$BIN"
 rm -rf /tmp/sing-box*
 
 # =============================
-# UDP 检测
-# =============================
-echo "👉 检测 UDP 是否可用"
-UDP_MODE=false
-# 尝试短时间发送 UDP 数据到自己，如果能发送成功就启用
-if timeout 1 bash -c "echo >/dev/udp/127.0.0.1/$PORT" 2>/dev/null; then
-    UDP_MODE=true
-fi
-echo "👉 UDP mode: $([ "$UDP_MODE" = true ] && echo 'TCP+UDP' || echo 'TCP-only')"
-
-# =============================
-# 生成 socks5 配置
+# 生成 TCP-only socks5 配置
 # =============================
 cat > "$CFG" <<EOF
 {
@@ -68,7 +57,6 @@ cat > "$CFG" <<EOF
       "type": "socks",
       "listen": "0.0.0.0",
       "listen_port": $PORT,
-      "udp": $UDP_MODE,
       "users": [
         { "username": "$USERNAME", "password": "$PASSWORD" }
       ]
@@ -132,12 +120,11 @@ fi
 PUBLIC_IP=$(curl -s https://ipinfo.io/ip)
 
 echo
-echo "✅ Socks5 节点已准备好！"
+echo "✅ TCP-only Socks5 节点已准备好！"
 echo "IP: $PUBLIC_IP"
 echo "端口: $PORT"
 echo "用户名: $USERNAME"
 echo "密码: $PASSWORD"
-echo "模式: $([ "$UDP_MODE" = true ] && echo 'TCP+UDP' || echo 'TCP-only')"
 echo
 echo "📲 小火箭可直接使用的 Socks5 链接："
 echo "socks5://$USERNAME:$PASSWORD@$PUBLIC_IP:$PORT"
