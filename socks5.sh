@@ -1,3 +1,4 @@
+#!/bin/sh
 set -e
 
 # 参数检查
@@ -19,7 +20,7 @@ mkdir -p "$SB_DIR" /etc/sing-box
 
 echo "👉 下载 sing-box 1.12.13"
 curl -L -o /tmp/sing-box.tar.gz \
-https://github.com/SagerNet/sing-box/releases/download/v1.12.13/sing-box-1.12.13-linux-amd64.tar.gz
+  https://github.com/SagerNet/sing-box/releases/download/v1.12.13/sing-box-1.12.13-linux-amd64.tar.gz
 
 tar -xf /tmp/sing-box.tar.gz -C /tmp
 install -m 755 /tmp/sing-box-*/sing-box "$BIN"
@@ -61,4 +62,17 @@ echo "👉 启动服务"
 rc-service sing-box-socks5 start
 rc-service sing-box-socks5 status
 
-echo "✅ socks5 部署完成"
+# 自动获取 VPS 公网 IP
+PUBLIC_IP=$(curl -s https://ipinfo.io/ip)
+
+echo
+echo "✅ Socks5 节点已准备好！"
+echo "IP: $PUBLIC_IP"
+echo "端口: $PORT"
+echo "用户名: $USERNAME"
+echo "密码: $PASSWORD"
+echo
+echo "客户端示例命令："
+echo "curl -x socks5h://$USERNAME:$PASSWORD@$PUBLIC_IP:$PORT https://ipinfo.io"
+echo
+echo "🎉 复制上述信息即可在浏览器、系统代理或 Clash / v2ray 使用"
