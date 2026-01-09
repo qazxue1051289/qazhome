@@ -6,7 +6,7 @@
 ```bash
 # 一键安装
 PORT=端口 USERNAME=账号 PASSWORD=密码 \
-bash <(curl -Ls https://raw.githubusercontent.com/qazxue1051289/main/socks5.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/qazxue1051289/qazhome/main/socks5.sh)
 
 # 一键卸载
-bash <(curl -Ls https://raw.githubusercontent.com/qazxue1051289/main/socks-un.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/qazxue1051289/qazhome/main/socks-un.sh)
