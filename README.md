@@ -8,5 +8,9 @@
 PORT=端口 USERNAME=账号 PASSWORD=密码 \
 bash <(curl -Ls https://raw.githubusercontent.com/qazxue1051289/qazhome/main/socks5.sh)
 
+# 一键安装 socks5 TCP-only
+PORT=端口 USERNAME=账号 PASSWORD=密码 \
+bash <(curl -Ls https://raw.githubusercontent.com/qazxue1051289/qazhome/main/socks5-t.sh)
+
 # 一键卸载
 bash <(curl -Ls https://raw.githubusercontent.com/qazxue1051289/qazhome/main/socks-un.sh)
