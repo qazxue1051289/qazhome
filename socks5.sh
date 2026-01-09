@@ -21,7 +21,6 @@ mkdir -p "$SB_DIR" /etc/sing-box
 echo "👉 下载 sing-box 1.12.13"
 curl -L -o /tmp/sing-box.tar.gz \
   https://github.com/SagerNet/sing-box/releases/download/v1.12.13/sing-box-1.12.13-linux-amd64.tar.gz
-
 tar -xf /tmp/sing-box.tar.gz -C /tmp
 install -m 755 /tmp/sing-box-*/sing-box "$BIN"
 rm -rf /tmp/sing-box*
@@ -62,7 +61,7 @@ echo "👉 启动服务"
 rc-service sing-box-socks5 start
 rc-service sing-box-socks5 status
 
-# 自动获取 VPS 公网 IP
+# 获取公网 IP
 PUBLIC_IP=$(curl -s https://ipinfo.io/ip)
 
 echo
@@ -71,8 +70,18 @@ echo "IP: $PUBLIC_IP"
 echo "端口: $PORT"
 echo "用户名: $USERNAME"
 echo "密码: $PASSWORD"
+
+# 生成小火箭可导入格式
 echo
-echo "客户端示例命令："
-echo "curl -x socks5h://$USERNAME:$PASSWORD@$PUBLIC_IP:$PORT https://ipinfo.io"
+echo "📲 小火箭导入节点信息（复制下面内容到节点配置 → 添加节点 → 导入）"
+echo "===================="
+echo "[Socks5]"
+echo "Type = Socks5"
+echo "Host = $PUBLIC_IP"
+echo "Port = $PORT"
+echo "Username = $USERNAME"
+echo "Password = $PASSWORD"
+echo "===================="
+
 echo
-echo "🎉 复制上述信息即可在浏览器、系统代理或 Clash / v2ray 使用"
+echo "🎉 复制上述信息即可在小火箭中直接导入使用"
