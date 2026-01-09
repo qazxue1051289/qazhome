@@ -23,6 +23,12 @@ fi
 pkill -9 sing-box 2>/dev/null || true
 sleep 1
 
+# 删除可能存在的旧 SysV init 脚本，避免报错
+if [ -f /etc/init.d/sing-box-socks5 ]; then
+    echo "👉 删除旧的 SysV init 脚本"
+    rm -f /etc/init.d/sing-box-socks5
+fi
+
 # -----------------------------
 # 下载 sing-box
 # -----------------------------
