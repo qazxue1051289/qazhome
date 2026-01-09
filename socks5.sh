@@ -71,17 +71,10 @@ echo "端口: $PORT"
 echo "用户名: $USERNAME"
 echo "密码: $PASSWORD"
 
-# 生成小火箭可导入格式
+# 生成小火箭可直接使用的 Socks5 URL
 echo
-echo "📲 小火箭导入节点信息（复制下面内容到节点配置 → 添加节点 → 导入）"
-echo "===================="
-echo "[Socks5]"
-echo "Type = Socks5"
-echo "Host = $PUBLIC_IP"
-echo "Port = $PORT"
-echo "Username = $USERNAME"
-echo "Password = $PASSWORD"
-echo "===================="
+echo "📲 小火箭可直接使用的 Socks5 链接："
+echo "socks5h://$USERNAME:$PASSWORD@$PUBLIC_IP:$PORT"
 
 echo
-echo "🎉 复制上述信息即可在小火箭中直接导入使用"
+echo "🎉 复制上述链接即可在小火箭或支持 Socks5 URL 的客户端中直接导入使用"
