@@ -4,9 +4,9 @@ set -e
 # =============================
 # 参数检查
 # =============================
-[ -z "$PORT" ] && echo "PORT missing" && exit 1
-[ -z "$USERNAME" ] && echo "USERNAME missing" && exit 1
-[ -z "$PASSWORD" ] && echo "PASSWORD missing" && exit 1
+[ -z "$PORT" ] && echo "❌ PORT missing" && exit 1
+[ -z "$USERNAME" ] && echo "❌ USERNAME missing" && exit 1
+[ -z "$PASSWORD" ] && echo "❌ PASSWORD missing" && exit 1
 
 SB_DIR="/usr/local/sb"
 BIN="$SB_DIR/sing-box-socks5"
@@ -35,7 +35,7 @@ if [ "$ARCH" = "x86_64" ]; then
 elif [[ "$ARCH" =~ ^aarch64 ]]; then
     ARCH_NAME="arm64"
 else
-    echo "Unsupported architecture: $ARCH"
+    echo "❌ Unsupported architecture: $ARCH"
     exit 1
 fi
 
@@ -51,10 +51,10 @@ rm -rf /tmp/sing-box*
 # =============================
 echo "👉 检测 UDP 是否可用"
 UDP_MODE=false
+# 尝试短时间发送 UDP 数据到自己，如果能发送成功就启用
 if timeout 1 bash -c "echo >/dev/udp/127.0.0.1/$PORT" 2>/dev/null; then
     UDP_MODE=true
 fi
-
 echo "👉 UDP mode: $([ "$UDP_MODE" = true ] && echo 'TCP+UDP' || echo 'TCP-only')"
 
 # =============================
@@ -81,7 +81,7 @@ cat > "$CFG" <<EOF
 EOF
 
 # =============================
-# systemd / OpenRC 管理
+# 创建 systemd / OpenRC 服务
 # =============================
 if command -v systemctl >/dev/null 2>&1; then
     echo "👉 systemd detected, 创建服务"
@@ -119,15 +119,27 @@ EORC
 fi
 
 # =============================
-# 输出链接
+# 测试端口是否监听
+# =============================
+sleep 1
+if ! ss -lnt | grep -q "$PORT"; then
+    echo "⚠️ 端口 $PORT 没有被监听，请检查 VPS 防火墙或端口是否被占用！"
+fi
+
+# =============================
+# 输出小火箭链接
 # =============================
 PUBLIC_IP=$(curl -s https://ipinfo.io/ip)
 
 echo
 echo "✅ Socks5 节点已准备好！"
-echo "🔗 链接格式（小火箭/Clash可用）："
+echo "IP: $PUBLIC_IP"
+echo "端口: $PORT"
+echo "用户名: $USERNAME"
+echo "密码: $PASSWORD"
+echo "模式: $([ "$UDP_MODE" = true ] && echo 'TCP+UDP' || echo 'TCP-only')"
+echo
+echo "📲 小火箭可直接使用的 Socks5 链接："
 echo "socks5://$USERNAME:$PASSWORD@$PUBLIC_IP:$PORT"
 echo
-echo "📦 当前模式： $([ "$UDP_MODE" = true ] && echo 'TCP+UDP' || echo 'TCP-only')"
-echo
-echo "👉 复制上面链接到客户端中使用即可"
+echo "🎉 复制上面链接到客户端中使用即可"
