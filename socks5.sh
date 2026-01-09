@@ -74,7 +74,7 @@ echo "密码: $PASSWORD"
 # 生成小火箭可直接使用的 Socks5 URL
 echo
 echo "📲 小火箭可直接使用的 Socks5 链接："
-echo "socks5h://$USERNAME:$PASSWORD@$PUBLIC_IP:$PORT"
+echo "socks5://$USERNAME:$PASSWORD@$PUBLIC_IP:$PORT"
 
 echo
 echo "🎉 复制上述链接即可在小火箭或支持 Socks5 URL 的客户端中直接导入使用"
