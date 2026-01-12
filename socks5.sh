@@ -1,129 +1,131 @@
 #!/bin/sh
-# =====================================
-# Sing-Box SOCKS5 一键安装/管理脚本
-# 支持 IPv4 + IPv6
-# =====================================
+# =========================================
+# sing-box SOCKS5 一键脚本（可中转版）
+# =========================================
 
-# 检查参数
-if [ -z "$1" ]; then
-    echo "用法: $0 {install|upgrade|link|status|uninstall}"
-    echo "示例：PORT=12805 USERNAME=fsst PASSWORD=jbvcd bash <(curl -Ls https://raw.githubusercontent.com/qazxue1051289/qazhome/main/socks5.sh) install"
-    exit 1
-fi
+set -e
 
 ACTION="$1"
-
-# 检查 PORT / USERNAME / PASSWORD
-if [ "$ACTION" = "install" ] || [ "$ACTION" = "upgrade" ] || [ "$ACTION" = "link" ]; then
-    if [ -z "$PORT" ] || [ -z "$USERNAME" ] || [ -z "$PASSWORD" ]; then
-        echo "❌ 请设置 PORT、USERNAME、PASSWORD 环境变量"
-        exit 1
-    fi
-fi
-
 SB_DIR="/usr/local/sb"
-SB_BIN="$SB_DIR/sing-box-socks5"
+SB_BIN="$SB_DIR/sing-box"
 SB_CONF="$SB_DIR/config.json"
 SB_LOG="$SB_DIR/sing-box.log"
 
-# 自动放行防火墙
-firewall_allow() {
-    if command -v iptables >/dev/null 2>&1; then
-        iptables -C INPUT -p tcp --dport "$PORT" -j ACCEPT 2>/dev/null || \
-        iptables -I INPUT -p tcp --dport "$PORT" -j ACCEPT
-        echo "✅ 防火墙端口 $PORT 已放行"
-    fi
-    if command -v ip6tables >/dev/null 2>&1; then
-        ip6tables -C INPUT -p tcp --dport "$PORT" -j ACCEPT 2>/dev/null || \
-        ip6tables -I INPUT -p tcp --dport "$PORT" -j ACCEPT
-        echo "✅ IPv6 防火墙端口 $PORT 已放行"
-    fi
+usage() {
+  echo "用法: $0 {install|upgrade|status|link|uninstall}"
+  echo "示例:"
+  echo "PORT=12805 USERNAME=user PASSWORD=pass bash <(curl -Ls https://raw.githubusercontent.com/qazxue1051289/qazhome/main/socks5.sh) install"
+  exit 1
 }
 
-# 安装 / 升级 sing-box
-install_singbox() {
-    echo "👉 下载 sing-box 最新版本..."
-    mkdir -p "$SB_DIR"
-    curl -Lso "$SB_BIN" "https://github.com/SagerNet/sing-box/releases/latest/download/sing-box-linux-amd64"
-    chmod +x "$SB_BIN"
+[ -z "$ACTION" ] && usage
 
-    echo "👉 生成配置文件..."
-    cat > "$SB_CONF" <<EOF
+need_env() {
+  if [ -z "$PORT" ] || [ -z "$USERNAME" ] || [ -z "$PASSWORD" ]; then
+    echo "❌ 必须设置 PORT USERNAME PASSWORD"
+    exit 1
+  fi
+}
+
+allow_firewall() {
+  if command -v iptables >/dev/null 2>&1; then
+    iptables -C INPUT -p tcp --dport "$PORT" -j ACCEPT 2>/dev/null || \
+    iptables -I INPUT -p tcp --dport "$PORT" -j ACCEPT
+  fi
+  if command -v ip6tables >/dev/null 2>&1; then
+    ip6tables -C INPUT -p tcp --dport "$PORT" -j ACCEPT 2>/dev/null || \
+    ip6tables -I INPUT -p tcp --dport "$PORT" -j ACCEPT
+  fi
+}
+
+install_sb() {
+  need_env
+  mkdir -p "$SB_DIR"
+
+  echo "👉 下载 sing-box..."
+  curl -Lso "$SB_BIN" https://github.com/SagerNet/sing-box/releases/latest/download/sing-box-linux-amd64
+  chmod +x "$SB_BIN"
+
+  echo "👉 生成可中转配置..."
+
+  cat > "$SB_CONF" <<EOF
 {
-  "inbounds": [{
-    "type": "socks",
-    "listen": "0.0.0.0:$PORT",
-    "listen_ipv6": "[::]:$PORT",
-    "users": [{
-      "user": "$USERNAME",
-      "pass": "$PASSWORD"
-    }]
-  }]
+  "log": {
+    "level": "info",
+    "output": "$SB_LOG"
+  },
+  "inbounds": [
+    {
+      "type": "socks",
+      "tag": "socks-in",
+      "listen": "0.0.0.0",
+      "listen_port": $PORT,
+      "users": [
+        {
+          "user": "$USERNAME",
+          "pass": "$PASSWORD"
+        }
+      ],
+      "udp": true,
+      "sniff": true,
+      "outbound": "direct"
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "direct",
+      "tag": "direct"
+    }
+  ]
 }
 EOF
 
-    firewall_allow
+  allow_firewall
 
-    echo "👉 启动 sing-box 服务..."
-    "$SB_BIN" run -c "$SB_CONF" > "$SB_LOG" 2>&1 &
-    sleep 1
-    echo "✅ Socks5 节点已准备好！"
+  echo "👉 启动 sing-box..."
+  pkill -f "$SB_BIN" 2>/dev/null || true
+  nohup "$SB_BIN" run -c "$SB_CONF" >/dev/null 2>&1 &
 
-    show_links
+  sleep 1
+  echo "✅ sing-box SOCKS5 已启动（支持中转）"
+  show_info
 }
 
-# 显示节点信息和链接
-show_links() {
-    IPV4=$(curl -4 -s ifconfig.me)
-    IPV6=$(curl -6 -s ifconfig.me)
+show_info() {
+  IPV4=$(curl -4 -s --max-time 2 ifconfig.me || true)
+  IPV6=$(curl -6 -s --max-time 2 ifconfig.me || true)
 
-    echo "📌 节点信息："
-    echo "端口: $PORT"
-    echo "用户名: $USERNAME"
-    echo "密码: $PASSWORD"
-    echo ""
-    echo "🌐 小火箭 IPv4 链接："
-    echo "socks5://$USERNAME:$PASSWORD@$IPV4:$PORT"
-    echo ""
-    echo "🌐 小火箭 IPv6 链接："
-    echo "socks5://$USERNAME:$PASSWORD@[$IPV6]:$PORT"
+  echo ""
+  echo "📌 节点信息"
+  echo "端口: $PORT"
+  echo "用户名: $USERNAME"
+  echo "密码: $PASSWORD"
+  echo ""
+
+  [ -n "$IPV4" ] && echo "🌐 IPv4: socks5://$USERNAME:$PASSWORD@$IPV4:$PORT"
+  [ -n "$IPV6" ] && echo "🌐 IPv6: socks5://$USERNAME:$PASSWORD@[$IPV6]:$PORT"
 }
 
-# 查看服务状态
-status_singbox() {
-    if pgrep -f "$SB_BIN" >/dev/null 2>&1; then
-        echo "✅ sing-box-socks5 正在运行"
-        show_links
-    else
-        echo "❌ sing-box-socks5 未运行"
-    fi
+status_sb() {
+  if pgrep -f "$SB_BIN" >/dev/null; then
+    echo "✅ sing-box 正在运行"
+    show_info
+  else
+    echo "❌ sing-box 未运行"
+  fi
 }
 
-# 卸载服务
-uninstall_singbox() {
-    echo "👉 停止 sing-box 服务..."
-    pkill -f "$SB_BIN"
-    echo "👉 删除文件..."
-    rm -rf "$SB_DIR"
-    echo "✅ 卸载完成"
+uninstall_sb() {
+  echo "👉 停止 sing-box..."
+  pkill -f "$SB_BIN" 2>/dev/null || true
+  rm -rf "$SB_DIR"
+  echo "✅ 已卸载"
 }
 
-# 执行动作
 case "$ACTION" in
-    install|upgrade)
-        install_singbox
-        ;;
-    status)
-        status_singbox
-        ;;
-    link)
-        show_links
-        ;;
-    uninstall)
-        uninstall_singbox
-        ;;
-    *)
-        echo "❌ 未知命令: $ACTION"
-        exit 1
-        ;;
+  install|upgrade) install_sb ;;
+  status) status_sb ;;
+  link) need_env; show_info ;;
+  uninstall) uninstall_sb ;;
+  *) usage ;;
 esac
