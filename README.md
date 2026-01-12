@@ -1,5 +1,7 @@
 # Socks5 自检版脚本说明（Alpine / OpenRC 支持）
 
+PORT=端口 USERNAME=账号 PASSWORD=密码 bash <(curl -Ls https://raw.githubusercontent.com/qazxue1051289/qazhome/main/socks5.sh) install
+
 本脚本用于快速部署 socks5 节点，特点：
 - 强制要求 PORT / USERNAME / PASSWORD，无默认值
 - 自动生成 sing-box 配置文件并启动服务
