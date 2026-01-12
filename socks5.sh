@@ -15,21 +15,53 @@ require_env() {
 }
 
 self_check() {
-  echo "👉 TCP 出口检测 (1.1.1.1:443)"
-  if ! timeout 5 sh -c "echo | nc -w 3 1.1.1.1 443" 2>/dev/null; then
-    echo "❌ TCP 443 出口不可达"
-    echo "❌ 当前 VPS 不适合作为代理节点"
+  echo "👉 [自检] TCP 出口检测 (1.1.1.1:443)"
+  if ! timeout 5 sh -c "echo | nc -w 3 1.1.1.1 443" >/dev/null 2>&1; then
+    echo
+    echo "❌ TCP 443 无法建立连接（超时或被阻断）"
+    echo
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "❌ 结论：此 VPS 不适合用作代理节点"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "原因说明："
+    echo "- ICMP (ping) 可通"
+    echo "- 但 TCP 出口被封锁或严重限速"
+    echo "- socks5 / HTTP / HTTPS 无法正常工作"
+    echo
+    echo "常见原因："
+    echo "- NAT / 特价 VPS"
+    echo "- 商家限制国际 TCP 出口"
+    echo "- 仅允许 ICMP 或白名单流量"
+    echo
+    echo "建议："
+    echo "- 更换 VPS 商家或线路"
+    echo "- 选择明确支持代理 / 中转的 VPS"
+    echo
+    echo "脚本已安全退出，未进行任何安装。"
     exit 1
   fi
 
-  echo "👉 HTTPS 连通性检测"
+  echo "👉 [自检] HTTPS 连通性检测"
   if ! curl -I --max-time 8 https://www.google.com >/dev/null 2>&1; then
-    echo "❌ HTTPS 出口异常（可能被劫持或封锁）"
-    echo "❌ 已终止安装"
+    echo
+    echo "❌ HTTPS 请求异常或被劫持"
+    echo
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "❌ 结论：此 VPS 不适合用作代理节点"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "原因说明："
+    echo "- TCP 可连，但 HTTPS 流量异常"
+    echo "- 代理流量将无法正常使用"
+    echo
+    echo "建议："
+    echo "- 更换干净的国际线路 VPS"
+    echo
+    echo "脚本已安全退出，未进行任何安装。"
     exit 1
   fi
-}
 
+  echo "✅ [自检] TCP / HTTPS 出口正常"
+}
 install_singbox() {
   mkdir -p "$SB_DIR"
   if [ ! -f "$SB_BIN" ]; then
