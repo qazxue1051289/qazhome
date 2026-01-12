@@ -1,6 +1,8 @@
 # Sing-Box 一键安装/升级/管理脚本 🌐
 
 📌 **功能特点**  
+本脚本包含 TCP/HTTPS 出口自检
+若 VPS 仅 ICMP 可达、TCP 出口被封，将直接判定为不适合做代理并退出
 
 - 强制输入 `PORT`、`USERNAME`、`PASSWORD`，无默认值  
 - 自动安装 / 升级最新 sing-box 二进制  
