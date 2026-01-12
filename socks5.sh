@@ -1,8 +1,4 @@
 #!/bin/sh
-# sing-box 中文一键安装脚本（强制输入 PORT USERNAME PASSWORD + 自动放行防火墙）
-# 使用方法：
-# PORT=端口 USERNAME=账号 PASSWORD=密码 bash <(curl -Ls https://你的GitHub路径/socks5.sh)
-
 # =============================
 # 强制检查环境变量
 # =============================
