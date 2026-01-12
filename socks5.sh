@@ -1,80 +1,87 @@
 #!/bin/sh
-set -e
+# sing-box 中文一键安装脚本（强制输入 PORT USERNAME PASSWORD + 自动放行防火墙）
+# 使用方法：
+# PORT=端口 USERNAME=账号 PASSWORD=密码 bash <(curl -Ls https://你的GitHub路径/socks5.sh)
 
-# 参数检查
-[ -z "$PORT" ] && echo "PORT missing" && exit 1
-[ -z "$USERNAME" ] && echo "USERNAME missing" && exit 1
-[ -z "$PASSWORD" ] && echo "PASSWORD missing" && exit 1
+# =============================
+# 强制检查环境变量
+# =============================
+if [ -z "$PORT" ] || [ -z "$USERNAME" ] || [ -z "$PASSWORD" ]; then
+    echo "❌ 错误：必须指定 PORT / USERNAME / PASSWORD"
+    echo "示例：PORT=12806 USERNAME=hshshshs PASSWORD=jdjhdd bash <(curl -Ls https://你的GitHub路径/socks5.sh)"
+    exit 1
+fi
 
 SB_DIR="/usr/local/sb"
-BIN="$SB_DIR/sing-box-socks5"
-CFG="/etc/sing-box/config.json"
+SB_BIN="$SB_DIR/sing-box-socks5"
+CONFIG_FILE="$SB_DIR/config.json"
 
-echo "👉 停止旧服务 & 清理残留进程"
-rc-service sing-box-socks5 stop 2>/dev/null || true
-pkill -9 sing-box 2>/dev/null || true
-sleep 1
+# =============================
+# 创建目录 & 下载 sing-box
+# =============================
+mkdir -p "$SB_DIR"
+echo "👉 下载 sing-box 最新版本..."
+curl -L -o "$SB_BIN" https://github.com/sing-box/sing-box/releases/download/v1.12.13/sing-box-linux-amd64
+chmod +x "$SB_BIN"
 
-echo "👉 创建目录"
-mkdir -p "$SB_DIR" /etc/sing-box
-
-echo "👉 下载 sing-box 1.12.13"
-curl -L -o /tmp/sing-box.tar.gz \
-  https://github.com/SagerNet/sing-box/releases/download/v1.12.13/sing-box-1.12.13-linux-amd64.tar.gz
-tar -xf /tmp/sing-box.tar.gz -C /tmp
-install -m 755 /tmp/sing-box-*/sing-box "$BIN"
-rm -rf /tmp/sing-box*
-
-echo "👉 生成 socks5 配置"
-cat > "$CFG" <<JSON
+# =============================
+# 生成 socks5 配置
+# =============================
+echo "👉 生成 socks5 配置..."
+cat > "$CONFIG_FILE" <<EOF
 {
-  "log": { "level": "info" },
-  "inbounds": [
+  "log": {"level":"info"},
+  "inbounds":[
     {
-      "type": "socks",
-      "listen": "0.0.0.0",
-      "listen_port": $PORT,
-      "users": [
-        { "username": "$USERNAME", "password": "$PASSWORD" }
+      "type":"socks",
+      "listen":"0.0.0.0",
+      "listen_port":$PORT,
+      "users":[
+        {"username":"$USERNAME","password":"$PASSWORD"}
       ]
     }
   ],
-  "outbounds": [
-    { "type": "direct" }
-  ]
+  "outbounds":[{"type":"direct"}]
 }
-JSON
+EOF
 
-echo "👉 写 OpenRC service（不假死）"
-cat > /etc/init.d/sing-box-socks5 <<'RC'
+# =============================
+# 写 OpenRC 服务
+# =============================
+echo "👉 写 OpenRC 服务..."
+cat > /etc/init.d/sing-box-socks5 <<'EOF'
 #!/sbin/openrc-run
-command="/usr/local/sb/sing-box-socks5"
-command_args="run -c /etc/sing-box/config.json"
-command_background=true
-pidfile="/run/sing-box-socks5.pid"
-RC
-
+command=/usr/local/sb/sing-box-socks5
+command_args="run -c /usr/local/sb/config.json"
+pidfile=/var/run/sing-box-socks5.pid
+name=sing-box-socks5
+description="sing-box SOCKS5 服务"
+EOF
 chmod +x /etc/init.d/sing-box-socks5
-rc-update add sing-box-socks5 default || true
+rc-update add sing-box-socks5 default
 
-echo "👉 启动服务"
+# =============================
+# 自动放行防火墙端口
+# =============================
+echo "👉 自动放行防火墙端口 $PORT ..."
+iptables -I INPUT -p tcp --dport $PORT -j ACCEPT
+echo "✅ 防火墙端口 $PORT 已放行"
+
+# =============================
+# 启动服务
+# =============================
+echo "👉 启动 sing-box 服务..."
 rc-service sing-box-socks5 start
-rc-service sing-box-socks5 status
 
-# 获取公网 IP
-PUBLIC_IP=$(curl -s https://ipinfo.io/ip)
-
-echo
+# =============================
+# 输出小火箭可用链接
+# =============================
+VPS_IP=$(curl -s https://ifconfig.me)
 echo "✅ Socks5 节点已准备好！"
-echo "IP: $PUBLIC_IP"
+echo "IP: $VPS_IP"
 echo "端口: $PORT"
 echo "用户名: $USERNAME"
 echo "密码: $PASSWORD"
-
-# 生成小火箭可直接使用的 Socks5 URL
-echo
+echo ""
 echo "📲 小火箭可直接使用的 Socks5 链接："
-echo "socks5://$USERNAME:$PASSWORD@$PUBLIC_IP:$PORT"
-
-echo
-echo "🎉 复制上述链接即可在小火箭或支持 Socks5 URL 的客户端中直接导入使用"
+echo "socks5://$USERNAME:$PASSWORD@$VPS_IP:$PORT"
